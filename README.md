@@ -119,3 +119,11 @@ The AKS-managed node resource group (`MC_...`) is deleted automatically with the
 - **Workload identity (OIDC)** — pods get Azure AD identities via federation; no `aad-pod-identity` daemonset, no secrets in etcd.
 - **Route table placeholder** — `rt-aks` ships empty but associated, so forcing egress through a firewall later is a one-block change instead of a subnet migration.
 - **No registry modules** — every resource is explicit, so the whole platform is auditable in one `main.tf`.
+
+## Upgrading
+
+- **azurerm 3.x to 4.x.** The provider constraint is now `~> 4.0`. Three breaking changes in 4.x touched this repo:
+  - The `oms_agent` block was removed from `azurerm_kubernetes_cluster`. Control-plane logs now flow through an `azurerm_monitor_diagnostic_setting` resource (kube-apiserver, kube-audit, kube-controller-manager, kube-scheduler, plus AllMetrics) instead of the in-cluster agent addon.
+  - `enable_auto_scaling` on the user node pool is now `auto_scaling_enabled`.
+  - `dns_service_ip` was removed from `network_profile`; the DNS service IP is inferred from `service_cidr` (10.2.0.0/24 here, so the DNS IP stays 10.2.0.10).
+- Run `terraform init -upgrade` to pull the new major version, and review the plan before applying. On an existing cluster, the provider upgrade itself should not force recreation, but confirm that in the plan.

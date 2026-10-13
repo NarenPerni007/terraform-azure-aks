@@ -75,7 +75,7 @@ variable "user_node_max_count" {
 }
 
 variable "enable_log_analytics" {
-  description = "Create a Log Analytics workspace and enable the Container Insights (oms_agent) addon."
+  description = "Create a Log Analytics workspace and send the cluster control-plane logs to it via a diagnostic setting."
   type        = bool
   default     = true
 }

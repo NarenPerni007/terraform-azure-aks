@@ -167,10 +167,10 @@ resource "azurerm_kubernetes_cluster" "main" {
   workload_identity_enabled = true
 
   default_node_pool {
-    name                        = "system"
-    node_count                  = var.system_node_count
-    vm_size                     = var.system_vm_size
-    vnet_subnet_id              = azurerm_subnet.system.id
+    name                         = "system"
+    node_count                   = var.system_node_count
+    vm_size                      = var.system_vm_size
+    vnet_subnet_id               = azurerm_subnet.system.id
     only_critical_addons_enabled = true # keep workloads off the system pool
     upgrade_settings {
       drain_timeout_in_minutes      = 0
@@ -181,17 +181,8 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   network_profile {
     network_plugin    = "azure" # Azure CNI: pods get VNet IPs
-    dns_service_ip    = "10.2.0.10"
     service_cidr      = "10.2.0.0/24"
     load_balancer_sku = "standard"
-  }
-
-  # Container Insights -> Log Analytics.
-  dynamic "oms_agent" {
-    for_each = var.enable_log_analytics ? [1] : []
-    content {
-      log_analytics_workspace_id = azurerm_log_analytics_workspace.main[0].id
-    }
   }
 
   # Key Vault -> Secrets Store CSI driver, with rotation.
@@ -201,6 +192,36 @@ resource "azurerm_kubernetes_cluster" "main" {
       secret_rotation_enabled  = true
       secret_rotation_interval = "2m"
     }
+  }
+}
+
+# Control-plane logs -> Log Analytics. azurerm 4.x removed the cluster
+# oms_agent block, so Container Insights is wired through a diagnostic
+# setting instead of an in-cluster agent addon.
+resource "azurerm_monitor_diagnostic_setting" "aks" {
+  count                      = var.enable_log_analytics ? 1 : 0
+  name                       = "aks-control-plane-logs"
+  target_resource_id         = azurerm_kubernetes_cluster.main.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main[0].id
+
+  enabled_log {
+    category = "kube-apiserver"
+  }
+
+  enabled_log {
+    category = "kube-audit"
+  }
+
+  enabled_log {
+    category = "kube-controller-manager"
+  }
+
+  enabled_log {
+    category = "kube-scheduler"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
   }
 }
 
@@ -214,9 +235,9 @@ resource "azurerm_kubernetes_cluster_node_pool" "user" {
   vnet_subnet_id        = azurerm_subnet.user.id
   mode                  = "User"
 
-  enable_auto_scaling = true
-  min_count           = var.user_node_min_count
-  max_count           = var.user_node_max_count
+  auto_scaling_enabled = true
+  min_count            = var.user_node_min_count
+  max_count            = var.user_node_max_count
 
   # Keep cluster-critical pods on the system pool.
   node_taints = ["workload=true:NoSchedule"]
