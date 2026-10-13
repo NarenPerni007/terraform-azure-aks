@@ -1,14 +1,14 @@
 # terraform-azure-aks
 
-Production-ready Terraform for deploying an Azure Kubernetes Service (AKS) cluster **from scratch**: resource group, virtual network with dedicated subnets, NSG and route-table guardrails, Log Analytics, and an AKS cluster with a system node pool plus an autoscaled user node pool — all with raw `azurerm_*` resources, no registry modules.
+Production-ready Terraform for deploying an Azure Kubernetes Service (AKS) cluster **from scratch**: resource group, virtual network with dedicated subnets, NSG and route-table guardrails, Log Analytics, and an AKS cluster with a system node pool plus an autoscaled user node pool - all with raw `azurerm_*` resources, no registry modules.
 
 ## What it provisions
 
 - **Resource group** for the platform
 - **Virtual network** (`10.0.0.0/16` by default) with three subnets:
-  - `snet-system` — system node pool (core AKS addons only)
-  - `snet-user` — autoscaled workload node pool
-  - `snet-ingress` — dedicated subnet for ingress controllers / App Gateway (toggleable)
+  - `snet-system` - system node pool (core AKS addons only)
+  - `snet-user` - autoscaled workload node pool
+  - `snet-ingress` - dedicated subnet for ingress controllers / App Gateway (toggleable)
 - **Network security group** on the workload subnets (allows Azure Load Balancer probes, denies other inbound)
 - **Route table** associated to the workload subnets (ready for forced tunneling through a firewall/NVA)
 - **Log Analytics workspace** feeding **Container Insights** (toggleable)
@@ -109,16 +109,16 @@ kubectl get nodes
 terraform destroy
 ```
 
-The AKS-managed node resource group (`MC_...`) is deleted automatically with the cluster — the provider is configured with `prevent_deletion_if_contains_resources = false` so destroy doesn't get stuck on it.
+The AKS-managed node resource group (`MC_...`) is deleted automatically with the cluster - the provider is configured with `prevent_deletion_if_contains_resources = false` so destroy doesn't get stuck on it.
 
 ## Design decisions
 
-- **Managed identity over service principal** — no client secrets to create, store, or rotate.
-- **Azure CNI** — pods get real VNet IPs, which simplifies network policy and on-prem/VPN connectivity versus kubenet.
-- **Separate user pool for workloads** — the system pool runs with `onlyCriticalAddons` and the user pool carries a `NoSchedule` taint, so a noisy workload can never starve `coredns` or the metrics server.
-- **Workload identity (OIDC)** — pods get Azure AD identities via federation; no `aad-pod-identity` daemonset, no secrets in etcd.
-- **Route table placeholder** — `rt-aks` ships empty but associated, so forcing egress through a firewall later is a one-block change instead of a subnet migration.
-- **No registry modules** — every resource is explicit, so the whole platform is auditable in one `main.tf`.
+- **Managed identity over service principal** - no client secrets to create, store, or rotate.
+- **Azure CNI** - pods get real VNet IPs, which simplifies network policy and on-prem/VPN connectivity versus kubenet.
+- **Separate user pool for workloads** - the system pool runs with `onlyCriticalAddons` and the user pool carries a `NoSchedule` taint, so a noisy workload can never starve `coredns` or the metrics server.
+- **Workload identity (OIDC)** - pods get Azure AD identities via federation; no `aad-pod-identity` daemonset, no secrets in etcd.
+- **Route table placeholder** - `rt-aks` ships empty but associated, so forcing egress through a firewall later is a one-block change instead of a subnet migration.
+- **No registry modules** - every resource is explicit, so the whole platform is auditable in one `main.tf`.
 
 ## Upgrading
 

@@ -19,7 +19,7 @@ output "cluster_fqdn" {
 }
 
 output "oidc_issuer_url" {
-  description = "OIDC issuer URL — use it to set up federated credentials for workload identity."
+  description = "OIDC issuer URL - use it to set up federated credentials for workload identity."
   value       = azurerm_kubernetes_cluster.main.oidc_issuer_url
 }
 
